@@ -1,0 +1,8 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 2
+BreakBeforeBraces: Allman
+---
+Language: Cpp
+DerivePointerAlignment: false
+PointerAlignment: Right
