@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include "entity.hpp"
 #include "vec2.hpp"
@@ -21,6 +22,19 @@ constexpr float player_velocity_v{0.5f};
 
 bool playerUp{}, playerDown{}, playerLeft{}, playerRight{};
 Vec2<float> playerDirection{};
+
+struct InputSystem
+{
+  std::unordered_set<SDL_Keycode> pressedKeys;
+  std::unordered_set<SDL_Keycode> releasedKeys;
+  std::unordered_set<SDL_Keycode> heldKeys;
+
+  void reset()
+  {
+    this->pressedKeys.clear();
+    this->releasedKeys.clear();
+  }
+} gInput{};
 
 struct SdlDeleter
 {
@@ -86,7 +100,47 @@ Entity target{Vec2<float>{randomFloat(padding_v, window_width_v - padding_v),
 
 void playerUpdate(float delta)
 {
-  Vec2<float> playerDirectionNormalized = playerDirection.normalized();
+  if (gInput.heldKeys.contains(SDLK_w))
+  {
+    playerDirection.y = -1;
+    playerDown = false;
+    playerUp = true;
+  }
+
+  if (gInput.heldKeys.contains(SDLK_s))
+  {
+    playerDirection.y = 1;
+    playerUp = false;
+    playerDown = true;
+  }
+
+  if (gInput.heldKeys.contains(SDLK_a))
+  {
+    playerDirection.x = -1;
+    playerRight = false;
+    playerLeft = true;
+  }
+  if (gInput.heldKeys.contains(SDLK_d))
+  {
+    playerDirection.x = 1;
+    playerLeft = false;
+    playerRight = true;
+  }
+
+  if (!gInput.heldKeys.contains(SDLK_d) && !gInput.heldKeys.contains(SDLK_a))
+  {
+    playerDirection.x = 0;
+    playerLeft = playerRight = false;
+  }
+  if (!gInput.heldKeys.contains(SDLK_w) && !gInput.heldKeys.contains(SDLK_s))
+  {
+    playerDirection.y = 0;
+    playerUp = playerDown = false;
+  }
+
+  Vec2<float> playerDirectionNormalized{};
+  if (!playerDirection.zero())
+    playerDirectionNormalized = playerDirection.normalized();
 
   if (playerRight)
   {
@@ -143,7 +197,7 @@ int main(int argc, char *argv[])
   SDL_SetRenderDrawBlendMode(gRenderer.get(), SDL_BLENDMODE_BLEND);
 
   bool running{true};
-  SDL_Event gEvent;
+  SDL_Event event{};
 
   target.setColor(SDL_Color{78, 255, 45, 255});
 
@@ -151,6 +205,8 @@ int main(int argc, char *argv[])
 
   while (running)
   {
+    gInput.reset();
+
     auto distance = std::sqrt(static_cast<float>(
         std::pow((player.getPosition().x - target.getPosition().x), 2) +
         std::pow((player.getPosition().y - target.getPosition().y), 2)));
@@ -165,65 +221,22 @@ int main(int argc, char *argv[])
     auto delta{current - start};
     SDL_SetHint(SDL_HINT_RENDER_LOGICAL_SIZE_MODE, "letterbox");
     SDL_RenderSetLogicalSize(gRenderer.get(), window_width_v, window_height_v);
-    while (SDL_PollEvent(&gEvent))
-    {
-      if (gEvent.type == SDL_QUIT)
-        running = false;
 
-      if (gEvent.type == SDL_KEYDOWN)
+    while (SDL_PollEvent(&event))
+    {
+      switch (event.type)
       {
-        switch (gEvent.key.keysym.sym)
-        {
-        case SDLK_RIGHT:
-        case SDLK_d:
-          playerDirection.x = 1;
-          playerLeft = false;
-          playerRight = true;
-          break;
-        case SDLK_LEFT:
-        case SDLK_a:
-          playerDirection.x = -1;
-          playerRight = false;
-          playerLeft = true;
-          break;
-        case SDLK_UP:
-        case SDLK_w:
-          playerDirection.y = -1;
-          playerDown = false;
-          playerUp = true;
-          break;
-        case SDLK_DOWN:
-        case SDLK_s:
-          playerDirection.y = 1;
-          playerUp = false;
-          playerDown = true;
-        }
-      }
-      if (gEvent.type == SDL_KEYUP)
-      {
-        switch (gEvent.key.keysym.sym)
-        {
-        case SDLK_RIGHT:
-        case SDLK_d:
-          playerDirection.x = 0;
-          playerRight = false;
-          break;
-        case SDLK_LEFT:
-        case SDLK_a:
-          playerDirection.x = 0;
-          playerLeft = false;
-          break;
-        case SDLK_UP:
-        case SDLK_w:
-          playerDirection.y = 0;
-          playerUp = false;
-          break;
-        case SDLK_DOWN:
-        case SDLK_s:
-          playerDirection.y = 0;
-          playerDown = false;
-          break;
-        }
+      case SDL_QUIT:
+        running = false;
+        break;
+      case SDL_KEYDOWN:
+        gInput.pressedKeys.insert(event.key.keysym.sym);
+        gInput.heldKeys.insert(event.key.keysym.sym);
+        break;
+      case SDL_KEYUP:
+        gInput.releasedKeys.insert(event.key.keysym.sym);
+        gInput.heldKeys.erase(gInput.heldKeys.erase(event.key.keysym.sym));
+        break;
       }
     }
 

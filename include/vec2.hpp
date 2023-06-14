@@ -36,6 +36,8 @@ template <typename T> struct Vec2
         std::sqrt((this->x * this->x) + (this->y * this->y)));
   }
 
+  bool zero() const { return (!this->x && !this->y); }
+
   void operator+=(const Vec2<T> &other)
   {
     this->x += other.x;
@@ -141,8 +143,7 @@ template <typename T> Vec2<T> operator-(const Vec2<T> &vec2)
   return Vec2{-vec2.x, -vec2.y};
 }
 
-template <typename T>
-std::ostream &operator<<(std::ostream &out, Vec2<T> vec2)
+template <typename T> std::ostream &operator<<(std::ostream &out, Vec2<T> vec2)
 {
   out << "Vec2(" << vec2.x << ',' << vec2.y << ')';
   return out;
