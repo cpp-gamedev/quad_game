@@ -4,10 +4,10 @@
 #include <iostream>
 #include <memory>
 #include <random>
-#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include "entity.hpp"
 #include "vec2.hpp"
@@ -25,9 +25,9 @@ Vec2<float> playerDirection{};
 
 struct InputSystem
 {
-  std::set<SDL_Keycode> pressedKeys;
-  std::set<SDL_Keycode> releasedKeys;
-  std::set<SDL_Keycode> heldKeys;
+  std::unordered_set<SDL_Keycode> pressedKeys;
+  std::unordered_set<SDL_Keycode> releasedKeys;
+  std::unordered_set<SDL_Keycode> heldKeys;
 
   void reset()
   {
@@ -137,7 +137,10 @@ void playerUpdate(float delta)
     playerDirection.y = 0;
     playerUp = playerDown = false;
   }
-  Vec2<float> playerDirectionNormalized = playerDirection.normalized();
+
+  Vec2<float> playerDirectionNormalized{};
+  if (!playerDirection.zero())
+    playerDirectionNormalized = playerDirection.normalized();
 
   if (playerRight)
   {
